@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <header>
+        <h1>{{ thname }}</h1>
+    </header>
+
+    <div class="con">
+        {% for row in data %}
+        <div class="res">
+            <div class="res_head">
+                {{ loop.index }}:{{ row.name }}
+            </div>
+            <div class="res_content">
+                {{ row['res'] }}
+            </div>
+        </div>
+        <hr>
+        {% endfor %}
+    </div>
+
+
+    <form action="/res/{{ thname }}" method="POST">
+        <div class="form-group">
+            <label>名前</label>
+            <input type="text" name="name">
+        </div>
+        <div class="form-group">
+            <textarea class="form-control" rows="5" name="res"></textarea>
+        </div>
+        <button type="submit">送信</button>
+    </form>
+</div>
+{% endblock %}
