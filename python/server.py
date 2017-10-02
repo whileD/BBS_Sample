@@ -4,43 +4,45 @@ import csv
 import fcntl
 
 app = Flask(__name__)
-threadsDir = 'threads/'
-fields = ['name', 'res']
+THREADS_DIRECTORY = 'threads/'
 
-
-def threadLoader(file_name):
-    with open(threadsDir + file_name, 'r') as csvfile:
-        fcntl.flock(csvfile,fcntl.LOCK_EX)
-        reader = csv.DictReader(csvfile, fieldnames=fields)
+#csvファイルを読みこんでname,resのkey辞書型リストで返す
+def thread_loader(file_name):
+    with open(THREADS_DIRECTORY + file_name, 'r') as target:
+        fcntl.flock(target, fcntl.LOCK_EX)
+        reader = csv.DictReader(target, fieldnames=['name', 'res'])
         return [row for row in reader]
 
 
 @app.route('/')
 def index():
-    threads = os.listdir(threadsDir)
+    threads = os.listdir(THREADS_DIRECTORY)
     return render_template('index.html', threads=threads)
+
 
 @app.route('/thread/<string:thread_name>')
 def thread(thread_name):
-    data = threadLoader(thread_name)
-    return render_template('thread.html', 
-            title=thread_name, thname=thread_name, data=data)
+    data = thread_loader(thread_name)
+    return render_template('thread.html', title=thread_name, thread_name=thread_name, data=data)
+
 
 @app.route('/res/<string:thread_name>', methods=['POST'])
-def writeResponse(thread_name):
-    with open(threadsDir + thread_name, 'a') as target:
-        fcntl.flock(target,fcntl.LOCK_EX)
-        addstr = [request.form['name'], request.form['res']]
-        target.writelines(','.join(addstr) + '\n')
+def write_response(thread_name):
+    with open(THREADS_DIRECTORY + thread_name, 'a') as target:
+        fcntl.flock(target, fcntl.LOCK_EX)
+        res = [request.form['response-username'], request.form['response-response']]
+        target.writelines(','.join(res) + '\n')
+        print('b')
 
     return redirect(url_for('thread', thread_name=thread_name))
 
+
 @app.route('/newThread', methods=['POST'])
-def newThread():
-    with open(threadsDir + request.form['thread_name'], 'w') as th:
-        fcntl.flock(th,fcntl.LOCK_EX)
-        target = [request.form['thread_resname'], request.form['thread_res']]
-        th.writelines(','.join(target) + '\n')
+def new_thread():
+    with open(THREADS_DIRECTORY + request.form['new-thread-name'], 'w') as target:
+        fcntl.flock(target,fcntl.LOCK_EX)
+        newdata = [request.form['new-username'], request.form['new-response']]
+        target.writelines(','.join(newdata) + '\n')
 
     return redirect(url_for('index'))
 

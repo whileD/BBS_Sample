@@ -2,7 +2,7 @@
 {% block content %}
 <div class="container">
     <header>
-        <h1>{{ thname }}</h1>
+        <h1>{{ thread_name }}</h1>
     </header>
 
     <div class="con">
@@ -12,7 +12,7 @@
                 {{ loop.index }}:{{ row.name }}
             </div>
             <div class="res_content">
-                {{ row['res'] }}
+                {{ row.res }}
             </div>
         </div>
         <hr>
@@ -20,13 +20,13 @@
     </div>
 
 
-    <form action="/res/{{ thname }}" method="POST">
+    <form action="/res/{{ thread_name }}" method="POST">
         <div class="form-group">
             <label>名前</label>
-            <input type="text" name="name">
+            <input type="text" name="response-username">
         </div>
         <div class="form-group">
-            <textarea class="form-control" rows="5" name="res"></textarea>
+            <textarea class="form-control" rows="5" name="response-response"></textarea>
         </div>
         <button type="submit">送信</button>
     </form>
