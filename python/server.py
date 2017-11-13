@@ -17,7 +17,7 @@ def thread_loader(file_name):
 @app.route('/')
 def index():
     threads = os.listdir(THREADS_DIRECTORY)
-    return render_template('index.html', threads=threads)
+    return render_template('index.html', threads=['a', 'b'])
 
 
 @app.route('/thread/<string:thread_name>')
@@ -32,7 +32,6 @@ def write_response(thread_name):
         fcntl.flock(target, fcntl.LOCK_EX)
         res = [request.form['response-username'], request.form['response-response']]
         target.writelines(','.join(res) + '\n')
-        print('b')
 
     return redirect(url_for('thread', thread_name=thread_name))
 
