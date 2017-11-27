@@ -2,17 +2,17 @@
 {% block content %}
 <div class="container">
     <header>
-        <h1>{{ thread_name }}</h1>
+        <h1>{{ thread_info.name }}</h1>
     </header>
 
     <div class="con">
-        {% for row in data %}
+        {% for response in responses %}
         <div class="res">
             <div class="res_head">
-                {{ loop.index }}:{{ row.name }}
+                {{ response.response_number }}:{{ response.user_name }}
             </div>
             <div class="res_content">
-                {{ row.res }}
+                {{ response.response }}
             </div>
         </div>
         <hr>
@@ -20,7 +20,7 @@
     </div>
 
 
-    <form action="/res/{{ thread_name }}" method="POST">
+    <form action="/res/{{ thread_info.id }}" method="POST">
         <div class="form-group">
             <label>名前</label>
             <input type="text" name="response-username">

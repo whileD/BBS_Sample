@@ -1,50 +1,79 @@
-from flask import Flask, render_template, request, redirect, url_for
-import os
-import csv
-import fcntl
+from flask import Flask, render_template, request, redirect, url_for, g
+import sqlite3
 
 app = Flask(__name__)
-THREADS_DIRECTORY = 'threads/'
 
-#csvファイルを読みこんでname,resのkey辞書型リストで返す
-def thread_loader(file_name):
-    with open(THREADS_DIRECTORY + file_name, 'r') as target:
-        fcntl.flock(target, fcntl.LOCK_EX)
-        reader = csv.DictReader(target, fieldnames=['name', 'res'])
-        return [row for row in reader]
+DB_NAME = 'threads.db'
+
+# database
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None: 
+        db = g._database = sqlite3.connect(DB_NAME)
+    db.row_factory = make_dicts
+    return db
 
 
+@app.teardown_appcontext
+def close_connection(exeption):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+
+def make_dicts(cursor, row):
+    return dict((cursor.description[idx][0], value) for idx, value in enumerate(row))
+
+
+# index page
 @app.route('/')
 def index():
-    threads = os.listdir(THREADS_DIRECTORY)
-    return render_template('index.html', threads=['a', 'b'])
+    cur = get_db().cursor()
+    rows = cur.execute('select * from threads')
+    return render_template('index.html', threads=rows)
 
 
-@app.route('/thread/<string:thread_name>')
-def thread(thread_name):
-    data = thread_loader(thread_name)
-    return render_template('thread.html', title=thread_name, thread_name=thread_name, data=data)
-
-
-@app.route('/res/<string:thread_name>', methods=['POST'])
-def write_response(thread_name):
-    with open(THREADS_DIRECTORY + thread_name, 'a') as target:
-        fcntl.flock(target, fcntl.LOCK_EX)
-        res = [request.form['response-username'], request.form['response-response']]
-        target.writelines(','.join(res) + '\n')
-
-    return redirect(url_for('thread', thread_name=thread_name))
-
-
-@app.route('/newThread', methods=['POST'])
+# create thread
+@app.route('/new_thread', methods=['POST'])
 def new_thread():
-    with open(THREADS_DIRECTORY + request.form['new-thread-name'], 'w') as target:
-        fcntl.flock(target,fcntl.LOCK_EX)
-        newdata = [request.form['new-username'], request.form['new-response']]
-        target.writelines(','.join(newdata) + '\n')
+    db = get_db()
+    cur = db.cursor()
 
+    # 同じスレッドがあるなら処理をやめる
+    for row in cur.execute('select * from threads'):
+        if row['name'] == request.form['new-thread-name']:
+            return redirect(url_for('index'))
+
+    cur.execute('insert into threads(name) values(?)', (request.form['new-thread-name'], ))
+    new_thread = cur.execute('select * from threads where name=?', 
+            (request.form['new-thread-name'], )).fetchone()
+
+    cur.execute('insert into thread_responses values(?, ?, ?, ?)', 
+            (new_thread['id'], 1, request.form['new-response'], request.form['new-username']))
+
+    db.commit()
     return redirect(url_for('index'))
 
+
+@app.route('/thread/<int:thread_id>')
+def thread(thread_id):
+    cur =  get_db().cursor()
+    thread = cur.execute('select * from threads where id=?', (thread_id,)).fetchone()
+    responses = cur.execute('select * from thread_responses where thread_id=? order by response_number', (thread_id, ))
+    return render_template('thread.html', thread_info=thread, responses=responses)
+
+
+@app.route('/res/<int:thread_id>', methods=['POST'])
+def write_response(thread_id):
+    db = get_db()
+    cur = db.cursor()
+    next_resnum = cur.execute('select response_number from thread_responses where thread_id=? and response_number=(select max(response_number) from thread_responses where thread_id=?)',(thread_id,thread_id )).fetchone()['response_number'] + 1
+    cur.execute('insert into thread_responses values(?, ?, ?, ?)', 
+            (thread_id, next_resnum, request.form['response-response'], request.form['response-username']))
+
+    db.commit()
+    return redirect(url_for('thread', thread_id=thread_id))
+    
 
 if __name__ == '__main__':
     app.run(port=8000, debug=True)
