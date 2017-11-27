@@ -67,7 +67,8 @@ def thread(thread_id):
 def write_response(thread_id):
     db = get_db()
     cur = db.cursor()
-    next_resnum = cur.execute('select response_number from thread_responses where thread_id=? and response_number=(select max(response_number) from thread_responses where thread_id=?)',(thread_id,thread_id )).fetchone()['response_number'] + 1
+    next_resnum = cur.execute('select response_number from thread_responses where thread_id=? and response_number=(select max(response_number) from thread_responses where thread_id=?)',
+            (thread_id,thread_id )).fetchone()['response_number'] + 1
     cur.execute('insert into thread_responses values(?, ?, ?, ?)', 
             (thread_id, next_resnum, request.form['response-response'], request.form['response-username']))
 
